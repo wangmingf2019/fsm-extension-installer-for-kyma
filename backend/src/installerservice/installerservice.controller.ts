@@ -21,6 +21,7 @@ export class InstallerServiceController {
     public async installExtension(@Req() req: Request, @Res() res: Response) {
         res.end();
 
+        this.loggerService.log("Request body:");
         this.loggerService.log(req.body);
         const requestData = {
             accountId: req.body.accountId,
@@ -36,6 +37,7 @@ export class InstallerServiceController {
     public async upgradeExtension(@Req() req: Request, @Res() res: Response) {
         res.end();
 
+        this.loggerService.log("Request body:");
         this.loggerService.log(req.body);
         const requestData = {
             accountId: req.body.accountId,
@@ -51,6 +53,7 @@ export class InstallerServiceController {
     public async uninstallExtension(@Req() req: Request, @Res() res: Response) {
         res.end();
 
+        this.loggerService.log("Request body:");
         this.loggerService.log(req.body);
         const requestData = {
             accountId: req.body.accountId,

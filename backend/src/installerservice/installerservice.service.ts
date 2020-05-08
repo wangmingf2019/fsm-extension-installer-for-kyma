@@ -34,7 +34,7 @@ export class InstallerService {
     public async uninstallExtension(requestData: RequestUninstallData) {
         this.loggerService.log("Begin to uninstall extension application ...");
 
-        return await this.helmserviceService.delete({releaseName: requestData.releaseName,
+        await this.helmserviceService.delete({releaseName: requestData.releaseName,
             namespace: requestData.namespace} as HelmDeleteOptions);
 
         this.loggerService.log('Successfully finish uninstall workflow.');
@@ -160,8 +160,8 @@ export class InstallerService {
         const helmDeleteOptions = {
             releaseName: deployConfigData.lastHelmContent.helmRelease,
             namespace: deployConfigData.lastHelmContent.namespace
-        } as RequestUninstallData;
-        const deletedResult = await this.uninstallExtension(helmDeleteOptions);
+        } as HelmDeleteOptions;
+        const deletedResult = await this.helmserviceService.delete(helmDeleteOptions);
 
         if (deletedResult.stderr) {
             throw new Error(deletedResult.stderr);
