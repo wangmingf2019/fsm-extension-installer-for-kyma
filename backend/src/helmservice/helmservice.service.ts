@@ -1,14 +1,15 @@
 import {Injectable, Logger, LoggerService} from '@nestjs/common';
-import util = require('util');
 
 import {HelmDeleteOptions, HelmDeployOptions} from '../utils/interfaces/helmperformoptions.interface';
 import {HELM_BINARY_LOCATION, KUBE_CONFIG_LOCATION} from '../utils/constants';
-
-const exec = util.promisify(require('child_process').exec);
+import { CmdhelperService } from './../cmdhelper/cmdhelper.service';
 
 @Injectable()
 export class HelmserviceService {
     private readonly loggerService: LoggerService = new Logger(HelmserviceService.name, true);
+
+    constructor(private readonly cmdhelperService: CmdhelperService) {
+    }
 
     public async install(helmDeployOptions: HelmDeployOptions) {
         //Build helm command
@@ -26,7 +27,7 @@ export class HelmserviceService {
         return await this.execHelmCmd(cmdValue);
     }
 
-    private buildHelmCmd4Install(helmDeployOptions: HelmDeployOptions): string {
+    private buildHelmCmd4Install(helmDeployOptions: HelmDeployOptions): string[] {
         this.validateNotEmpty(helmDeployOptions.releaseName, 'releaseName');
         this.validateNotEmpty(helmDeployOptions.namespace, 'namespace');
 
@@ -53,10 +54,10 @@ export class HelmserviceService {
         //Set path to the kubeconfig file, default is '~/.kube/'
         installCommand += ` --kubeconfig ${KUBE_CONFIG_LOCATION}`;
 
-        return installCommand;
+        return installCommand.split(/(\s+)/).filter( e => e.trim().length > 0);;
     }
 
-    private buildHelmCmd4Delete(helmDeleteOptions: HelmDeleteOptions): string {
+    private buildHelmCmd4Delete(helmDeleteOptions: HelmDeleteOptions): string[] {
         this.validateNotEmpty(helmDeleteOptions.releaseName, 'releaseName');
         this.validateNotEmpty(helmDeleteOptions.namespace, 'namespace');
 
@@ -71,21 +72,19 @@ export class HelmserviceService {
         //Add release name
         uninstallCommand += `${helmDeleteOptions.releaseName}`;
 
-        return uninstallCommand;
+        return uninstallCommand.split(/(\s+)/).filter( e => e.trim().length > 0);;
     }
 
-    private async execHelmCmd(cmdValue: string) {
+    private async execHelmCmd(cmdValue: string[]) {
         //Perform helm install command
         const result = {stdout: null, stderr: null};
         try {
-            const response = await exec(`${HELM_BINARY_LOCATION} ${cmdValue}`);
-            result.stderr = response.stderr;
-            result.stdout = response.stdout;
-            this.loggerService.log(response.stdout.toString());
+            const response = await this.cmdhelperService.runCmd(`${HELM_BINARY_LOCATION}`, cmdValue)
+            result.stdout = response;
+            this.loggerService.log(response);
         } catch (error) {
-            result.stderr = error.stderr;
-            result.stdout = error.stdout;
-            this.loggerService.error(error.stderr.toString());
+            result.stderr = error;
+            this.loggerService.error(error);
         } finally {
             return result;
         }
