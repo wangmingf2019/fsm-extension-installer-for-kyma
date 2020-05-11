@@ -96,11 +96,16 @@ export class ExtensionCatalogService {
             const data = {
                 log: deployResultData.log,
                 shortMessage: deployResultData.shortMessage,
-                content: {
+                content: null
+            };
+            if (deployResultData.content) {
+                data.content = {
                     helmRelease: deployResultData.content.helmRelease,
                     namespace: deployResultData.content.namespace
                 }
-            };
+            } else {
+                delete data.content;
+            }
 
             await this.httpService.post(url, data, config).toPromise();
         } catch (error) {
