@@ -1,6 +1,6 @@
 import {Injectable, Logger, LoggerService} from '@nestjs/common';
 
-import {HelmDeleteOptions, HelmDeployOptions} from '../utils/interfaces/helmperformoptions.interface';
+import {HelmBaseOptions, HelmDeployOptions} from '../utils/interfaces/helmperformoptions.interface';
 import {HELM_BINARY_LOCATION, KUBE_CONFIG_LOCATION} from '../utils/constants';
 import { CmdhelperService } from './../cmdhelper/cmdhelper.service';
 
@@ -19,12 +19,24 @@ export class HelmserviceService {
         return await this.execHelmCmd(cmdValue);
     }
 
-    public async delete(helmDeleteOptions: HelmDeleteOptions) {
+    public async delete(helmDeleteOptions: HelmBaseOptions) {
         //Build helm command
         const cmdValue = this.buildHelmCmd4Delete(helmDeleteOptions);
 
         //Perform helm command
         return await this.execHelmCmd(cmdValue);
+    }
+
+    public async exist(helmStatusOptions: HelmBaseOptions) {
+        let isExist = false;
+        const cmdValue = this.buildHelmCmd4Status(helmStatusOptions);
+
+        const result = await this.execHelmCmd(cmdValue);
+        if (result.stdout) {
+            isExist = true;
+        }
+
+        return isExist;
     }
 
     private buildHelmCmd4Install(helmDeployOptions: HelmDeployOptions): string[] {
@@ -54,10 +66,10 @@ export class HelmserviceService {
         //Set path to the kubeconfig file, default is '~/.kube/'
         installCommand += ` --kubeconfig ${KUBE_CONFIG_LOCATION}`;
 
-        return installCommand.split(/(\s+)/).filter( e => e.trim().length > 0);;
+        return installCommand.split(/(\s+)/).filter( e => e.trim().length > 0);
     }
 
-    private buildHelmCmd4Delete(helmDeleteOptions: HelmDeleteOptions): string[] {
+    private buildHelmCmd4Delete(helmDeleteOptions: HelmBaseOptions): string[] {
         this.validateNotEmpty(helmDeleteOptions.releaseName, 'releaseName');
         this.validateNotEmpty(helmDeleteOptions.namespace, 'namespace');
 
@@ -72,7 +84,25 @@ export class HelmserviceService {
         //Add release name
         uninstallCommand += `${helmDeleteOptions.releaseName}`;
 
-        return uninstallCommand.split(/(\s+)/).filter( e => e.trim().length > 0);;
+        return uninstallCommand.split(/(\s+)/).filter( e => e.trim().length > 0);
+    }
+
+    private buildHelmCmd4Status(helmStatusOptions: HelmBaseOptions): string[] {
+        this.validateNotEmpty(helmStatusOptions.releaseName, 'releaseName');
+        this.validateNotEmpty(helmStatusOptions.namespace, 'namespace');
+
+        let statusCommand = `status ${helmStatusOptions.releaseName}`;
+
+        //Add namespace
+        statusCommand += ` -n ${helmStatusOptions.namespace}`;
+
+        //Set path to the kubeconfig file, default is '~/.kube/'
+        statusCommand += ` --kubeconfig ${KUBE_CONFIG_LOCATION}`;
+
+        //Add release name
+        statusCommand += ` --output json`;
+
+        return statusCommand.split(/(\s+)/).filter( e => e.trim().length > 0);
     }
 
     private async execHelmCmd(cmdValue: string[]) {
