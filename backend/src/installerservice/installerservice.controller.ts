@@ -13,13 +13,13 @@ export class InstallerServiceController {
     @Get('/status')
     @HttpCode(HttpStatus.OK)
     public getProbeValue() {
-        return `It's ok now`;
+        return `It's ok now.`;
     }
 
     @Post('/install')
     @HttpCode(HttpStatus.ACCEPTED)
     public async installExtension(@Req() req: Request, @Res() res: Response) {
-        res.end();
+        res.send('Accepted install requirement.').end();
 
         this.loggerService.log("Request body:");
         this.loggerService.log(req.body);
@@ -35,7 +35,7 @@ export class InstallerServiceController {
     @Post('/upgrade')
     @HttpCode(HttpStatus.ACCEPTED)
     public async upgradeExtension(@Req() req: Request, @Res() res: Response) {
-        res.end();
+        res.send('Accepted upgrade requirement.').end();
 
         this.loggerService.log("Request body:");
         this.loggerService.log(req.body);
@@ -51,7 +51,7 @@ export class InstallerServiceController {
     @Post('/uninstall')
     @HttpCode(HttpStatus.ACCEPTED)
     public async uninstallExtension(@Req() req: Request, @Res() res: Response) {
-        res.end();
+        res.send('Accepted uninstall requirement.').end();
 
         this.loggerService.log("Request body:");
         this.loggerService.log(req.body);

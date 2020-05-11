@@ -57,31 +57,35 @@ export class InstallerService {
     private async deployExtension(requestData: RequestInstallData, isUpgradeFlow: boolean) {
         let chartLocalPath: string = null;
         try {
-            this.loggerService.log('Step1, Get deployment configuration data via deploymentId from Extension Catalog service.');
+            let stepNum = 1;
+            this.loggerService.log(`Step${stepNum++}, Get deployment configuration data via deploymentId from Extension Catalog service.`);
             const deployConfigData: DeployConfigData =
                 await this.extensionCatalogService.getDeploymentConfigData(requestData);
 
-            this.loggerService.log('Step2, Download helm chart from github repository.');
+            this.loggerService.log(`Step${stepNum++}, Download helm chart from github repository.`);
             chartLocalPath = await this.chartserviceService.downloadChartFromGithubRepo(deployConfigData.chartConfigData);
 
             await this.preUpgradeFlow(isUpgradeFlow, deployConfigData);
+            if (isUpgradeFlow) {
+                stepNum++;
+            }
 
-            this.loggerService.log(`Step${isUpgradeFlow ? 4 : 3}, Using helm-cli to install extension app to Kyma cluster.`);
+            this.loggerService.log(`Step${stepNum++}, Using helm-cli to install extension app to Kyma cluster.`);
             const result = await this.installOperation(chartLocalPath, deployConfigData);
-
             const helmResult = JSON.parse(result);
-            this.loggerService.log(`Step5, Add helmRelease:${helmResult.name} and namespace:${helmResult.namespace} to Extension Deployment Result table.`);
-            await this.updateHelmValueToDeploymentResult(requestData, helmResult);
 
-            this.loggerService.log(`Step6, Get access url from Kyma cluster via virtualservice api-resource type.`);
+            this.loggerService.log(`Step${stepNum++}, Get access url from Kyma cluster via virtualservice api-resource type.`);
             const accessUrl = await this.kubectlService.getAccessUrlFromKymaByAppName(helmResult.name, helmResult.namespace);
 
-            this.loggerService.log(`Step7, Update state:${this.getDeployState(isUpgradeFlow, accessUrl)} to Extension Catalog service via API call.`);
+            this.loggerService.log(`Step${stepNum++}, Update state:${this.getDeployState(isUpgradeFlow, accessUrl)} to Extension Catalog service via API call.`);
             const updatedDeployData = this.buildUpdatedDeployInfo(requestData,
                 this.getDeployState(isUpgradeFlow, accessUrl), deployConfigData.appVersion, accessUrl);
             await this.extensionCatalogService.updateDeploymentInfoToCatalog(updatedDeployData);
 
-            this.loggerService.log('Successfully finish install or upgrade workflow.');
+            this.loggerService.log(`Step${stepNum++}, Add helmRelease:${helmResult.name} and namespace:${helmResult.namespace} to Extension Deployment Result table.`);
+            await this.updateHelmValueToDeploymentResult(requestData, helmResult);
+
+            this.loggerService.log(`Successfully finish install or upgrade workflow!`);
         } catch (error) {
             const state = isUpgradeFlow ? 'UPDATE_FAILED' : 'INSTALL_FAILED';
             const updatedDeployData = this.buildUpdatedDeployInfo(requestData, state, null, '');
@@ -104,11 +108,7 @@ export class InstallerService {
             companyId: requestData.companyId,
             extensionDeploymentId: requestData.extensionDeploymentId,
             log: error.toString(),
-            shortMessage: error.toString(),
-            content: {
-                helmRelease: '',
-                namespace: ''
-            }
+            shortMessage: error.name
         } as DeployResultData;
         await this.extensionCatalogService.addDeploymentResultToCatalog(deployResultData);
     }
